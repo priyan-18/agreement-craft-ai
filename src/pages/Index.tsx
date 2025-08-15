@@ -1,14 +1,48 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { AuthPage } from "./Auth";
+import { Dashboard } from "./Dashboard";
+import { AgreementGenerator } from "./AgreementGenerator";
+
+type AppState = "auth" | "dashboard" | "generator";
 
 const Index = () => {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
-    </div>
-  );
+  const [currentPage, setCurrentPage] = useState<AppState>("auth");
+
+  const handleAuthSuccess = () => {
+    setCurrentPage("dashboard");
+  };
+
+  const handleCreateNew = () => {
+    setCurrentPage("generator");
+  };
+
+  const handleBackToDashboard = () => {
+    setCurrentPage("dashboard");
+  };
+
+  const handleLogout = () => {
+    setCurrentPage("auth");
+  };
+
+  const renderPage = () => {
+    switch (currentPage) {
+      case "auth":
+        return <AuthPage onAuthSuccess={handleAuthSuccess} />;
+      case "dashboard":
+        return (
+          <Dashboard
+            onCreateNew={handleCreateNew}
+            onLogout={handleLogout}
+          />
+        );
+      case "generator":
+        return <AgreementGenerator onBack={handleBackToDashboard} />;
+      default:
+        return <AuthPage onAuthSuccess={handleAuthSuccess} />;
+    }
+  };
+
+  return <>{renderPage()}</>;
 };
 
 export default Index;
