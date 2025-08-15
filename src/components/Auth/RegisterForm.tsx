@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, EyeOff, Mail, Lock, User, Phone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { OTPVerification } from "./OTPVerification";
 
 interface RegisterFormProps {
   onRegisterSuccess: () => void;
@@ -14,6 +15,7 @@ interface RegisterFormProps {
 export const RegisterForm = ({ onRegisterSuccess, onSwitchToLogin }: RegisterFormProps) => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showOTP, setShowOTP] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -29,7 +31,7 @@ export const RegisterForm = ({ onRegisterSuccess, onSwitchToLogin }: RegisterFor
     return phoneRegex.test(phone);
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (formData.password !== formData.confirmPassword) {
@@ -53,8 +55,38 @@ export const RegisterForm = ({ onRegisterSuccess, onSwitchToLogin }: RegisterFor
     setLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Simulate OTP sending
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      toast({
+        title: "OTP Sent!",
+        description: `Verification code sent to +91 ${formData.phone}`,
+      });
+      
+      setShowOTP(true);
+    } catch (error) {
+      toast({
+        title: "Failed to send OTP",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOTPVerified = async () => {
+    try {
+      // Save user data after OTP verification
+      const userData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        createdAt: new Date().toISOString(),
+      };
+      
+      localStorage.setItem('currentUser', JSON.stringify(userData));
       
       toast({
         title: "Account created!",
@@ -68,10 +100,18 @@ export const RegisterForm = ({ onRegisterSuccess, onSwitchToLogin }: RegisterFor
         description: "Please try again later.",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
   };
+
+  if (showOTP) {
+    return (
+      <OTPVerification
+        phoneNumber={formData.phone}
+        onVerifySuccess={handleOTPVerified}
+        onBack={() => setShowOTP(false)}
+      />
+    );
+  }
 
   return (
     <div className="animate-fade-in-up">
@@ -85,7 +125,7 @@ export const RegisterForm = ({ onRegisterSuccess, onSwitchToLogin }: RegisterFor
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleRegister} className="space-y-4">
+          <form onSubmit={handleSendOTP} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName" className="text-sm font-medium">
@@ -217,10 +257,10 @@ export const RegisterForm = ({ onRegisterSuccess, onSwitchToLogin }: RegisterFor
               {loading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                  Creating account...
+                  Sending OTP...
                 </>
               ) : (
-                "Create Account"
+                "Send OTP"
               )}
             </Button>
 

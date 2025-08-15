@@ -6,8 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AgreementTypeSelector } from "@/components/Agreement/AgreementTypeSelector";
-import { ArrowLeft, Sparkles, Globe, Download, FileText, Eye, Loader2 } from "lucide-react";
+import { ArrowLeft, Sparkles, Globe, Download, FileText, Eye, Loader2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAgreements } from "@/hooks/useAgreements";
+import { getAgreementGenerator } from "@/services/agreementFormats";
 
 interface AgreementGeneratorProps {
   onBack: () => void;
@@ -25,7 +27,9 @@ export const AgreementGenerator = ({ onBack }: AgreementGeneratorProps) => {
   const [translatedContent, setTranslatedContent] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [translating, setTranslating] = useState(false);
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+  const { saveAgreement } = useAgreements();
 
   const handleTypeSelect = (type: string) => {
     setSelectedType(type);
@@ -417,87 +421,18 @@ export const AgreementGenerator = ({ onBack }: AgreementGeneratorProps) => {
     setLoading(true);
     try {
       // Simulate AI generation
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const mockContent = `
-**${selectedType.toUpperCase()} AGREEMENT**
+      // Use Indian government-approved format
+      const generator = getAgreementGenerator(selectedType);
+      const content = generator(formData);
 
-This Agreement is made and entered into on ${new Date().toLocaleDateString()}, between the parties as described below.
-
-**PARTIES:**
-${selectedType === 'rental' ? 
-  `- Landlord: ${formData.ownerName || '[Owner Name]'}
-- Tenant: ${formData.tenantName || '[Tenant Name]'}
-
-**PROPERTY DETAILS:**
-Address: ${formData.propertyAddress || '[Property Address]'}
-Monthly Rent: ₹${formData.monthlyRent || '[Amount]'}
-Security Deposit: ₹${formData.securityDeposit || '[Amount]'}` :
-
-selectedType === 'service' ?
-  `- Client: ${formData.clientName || '[Client Name]'}
-- Service Provider: ${formData.providerName || '[Provider Name]'}
-
-**SERVICE DETAILS:**
-Scope of Work: ${formData.serviceScope || '[Service Description]'}
-Service Fee: ₹${formData.serviceFee || '[Amount]'}
-Payment Terms: ${formData.paymentTerms || '[Terms]'}` :
-
-selectedType === 'nda' ?
-  `- First Party: ${formData.party1 || '[Party 1]'}
-- Second Party: ${formData.party2 || '[Party 2]'}
-
-**CONFIDENTIALITY TERMS:**
-Purpose: ${formData.purpose || '[Purpose]'}
-Confidential Information: ${formData.confidentialInfo || '[Information Types]'}
-Duration: ${formData.ndaDuration || '[Duration]'}` :
-
-selectedType === 'sale' ?
-  `- Buyer: ${formData.buyerName || '[Buyer Name]'}
-- Seller: ${formData.sellerName || '[Seller Name]'}
-
-**SALE DETAILS:**
-Item/Asset: ${formData.itemDescription || '[Item Description]'}
-Sale Price: ₹${formData.salePrice || '[Amount]'}
-Payment Method: ${formData.paymentMethod || '[Method]'}` :
-
-  `- First Party: ${formData.firstParty || '[First Party]'}
-- Second Party: ${formData.secondParty || '[Second Party]'}
-
-**AGREEMENT TERMS:**
-${formData.customTerms || '[Terms and Conditions]'}
-${formData.additionalClauses ? 'Additional Clauses: ' + formData.additionalClauses : ''}`
-}
-
-**TERMS AND CONDITIONS:**
-
-1. **Obligations:** Each party agrees to fulfill their respective obligations as outlined in this agreement.
-
-2. **Duration:** This agreement shall remain in effect for the specified duration or until terminated as per the terms herein.
-
-3. **Payment:** All payments shall be made as per the agreed schedule and method.
-
-4. **Termination:** This agreement may be terminated by either party with proper notice as required by law.
-
-5. **Governing Law:** This agreement shall be governed by the laws of India.
-
-6. **Dispute Resolution:** Any disputes arising from this agreement shall be resolved through mutual consultation or appropriate legal proceedings.
-
-**SIGNATURES:**
-
-Party 1: _________________________    Date: ______________
-
-Party 2: _________________________    Date: ______________
-
-**Note:** This is an AI-generated legal document template. Please consult with a qualified legal professional before using this agreement for any official purposes.
-`;
-
-      setGeneratedContent(mockContent);
+      setGeneratedContent(content);
       setCurrentStep("preview");
       
       toast({
         title: "Agreement generated!",
-        description: "Your professional agreement has been created successfully.",
+        description: "Your professional agreement is ready for review.",
       });
     } catch (error) {
       toast({
@@ -507,6 +442,80 @@ Party 2: _________________________    Date: ______________
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const translateAgreement = async (direction: "en_to_ta" | "ta_to_en") => {
+    setTranslating(true);
+    try {
+      // Simulate translation
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const mockTranslation = direction === "en_to_ta" 
+        ? "இந்த ஒப்பந்தம் கீழ்க்கண்ட தரப்பினர்களுக்கிடையே செய்யப்படுகிறது..."
+        : generatedContent;
+        
+      setTranslatedContent(mockTranslation);
+      
+      toast({
+        title: "Translation completed!",
+        description: `Agreement translated to ${direction === "en_to_ta" ? "Tamil" : "English"}.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Translation failed",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setTranslating(false);
+    }
+  };
+
+  const saveAgreementToStorage = async () => {
+    setSaving(true);
+    try {
+      const title = getAgreementTitle();
+      
+      const agreement = {
+        title,
+        type: selectedType,
+        content: generatedContent,
+        formData,
+        status: "completed" as const,
+      };
+
+      saveAgreement(agreement);
+      
+      toast({
+        title: "Agreement saved!",
+        description: "Your agreement has been saved to your dashboard.",
+      });
+    } catch (error) {
+      toast({
+        title: "Save failed",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const getAgreementTitle = () => {
+    switch (selectedType) {
+      case 'rental':
+        return `${formData.propertyAddress ? 'Rental Agreement - ' + formData.propertyAddress.split(',')[0] : 'Rental Agreement'}`;
+      case 'service':
+        return `Service Agreement - ${formData.clientName || 'Client'}`;
+      case 'nda':
+        return `NDA - ${formData.party1 || 'Party'} & ${formData.party2 || 'Party'}`;
+      case 'sale':
+        return `Sale Agreement - ${formData.itemDescription?.split(' ').slice(0, 3).join(' ') || 'Item'}`;
+      case 'custom':
+        return formData.agreementTitle || 'Custom Agreement';
+      default:
+        return 'Agreement';
     }
   };
 
@@ -698,7 +707,7 @@ ${selectedType === 'rental' ?
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl">Tamil Translation</CardTitle>
                   <Button 
-                    onClick={translateContent}
+                    onClick={() => translateAgreement("en_to_ta")}
                     disabled={translating}
                     variant={translatedContent ? "outline" : "default"}
                     size="sm" 
@@ -736,12 +745,49 @@ ${selectedType === 'rental' ?
           </div>
 
           <div className="text-center mt-8 animate-fade-in-up">
+            <div className="flex flex-wrap gap-4 justify-center mb-6">
+              <Button
+                onClick={saveAgreementToStorage}
+                disabled={saving}
+                className="primary-gradient text-white btn-hover"
+              >
+                {saving ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                Save Agreement
+              </Button>
+              
+              <Button
+                onClick={() => translateAgreement("en_to_ta")}
+                disabled={translating}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white btn-hover"
+              >
+                {translating ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Globe className="h-4 w-4 mr-2" />
+                )}
+                Translate to Tamil
+              </Button>
+              
+              <Button
+                onClick={downloadPDF}
+                variant="outline"
+                className="btn-hover"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download PDF
+              </Button>
+            </div>
+            
             <Card className="glass-card border-0 shadow-lg inline-block">
               <CardContent className="p-6">
                 <div className="flex items-center space-x-6">
                   <div className="flex items-center space-x-2">
                     <FileText className="h-5 w-5 text-secondary" />
-                    <span className="text-sm font-medium">Professional Format</span>
+                    <span className="text-sm font-medium">Government Format</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Sparkles className="h-5 w-5 text-primary" />

@@ -1,17 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardStats } from "@/components/Dashboard/DashboardStats";
 import { Plus, FileText, Eye, Download, Trash2, Globe, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-interface Agreement {
-  id: string;
-  title: string;
-  type: string;
-  createdAt: string;
-  status: "draft" | "completed";
-}
+import { useAgreements } from "@/hooks/useAgreements";
 
 interface DashboardProps {
   onCreateNew: () => void;
@@ -20,42 +13,52 @@ interface DashboardProps {
 
 export const Dashboard = ({ onCreateNew, onLogout }: DashboardProps) => {
   const { toast } = useToast();
-  const [agreements] = useState<Agreement[]>([
-    {
-      id: "1",
-      title: "Office Rental Agreement - Mumbai",
-      type: "Rental",
-      createdAt: "2024-01-15",
-      status: "completed"
-    },
-    {
-      id: "2", 
-      title: "Software Development Service Agreement",
-      type: "Service",
-      createdAt: "2024-01-12",
-      status: "completed"
-    },
-    {
-      id: "3",
-      title: "Product Design NDA",
-      type: "NDA",
-      createdAt: "2024-01-10",
-      status: "draft"
+  const { agreements, loading, deleteAgreement, getStats } = useAgreements();
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    const userData = localStorage.getItem('currentUser');
+    if (userData) {
+      setCurrentUser(JSON.parse(userData));
     }
-  ]);
+  }, []);
 
   const handleDownload = (agreementId: string) => {
+    const agreement = agreements.find(a => a.id === agreementId);
+    if (!agreement) return;
+    
+    // Create PDF blob and download
+    const content = agreement.content || 'No content available';
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${agreement.title.replace(/\s+/g, '_')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
     toast({
-      title: "Download started",
-      description: "Your PDF is being generated and will download shortly.",
+      title: "Download completed",
+      description: "Your agreement has been downloaded successfully.",
     });
   };
 
   const handleDelete = (agreementId: string) => {
-    toast({
-      title: "Agreement deleted",
-      description: "The agreement has been removed from your account.",
-    });
+    try {
+      deleteAgreement(agreementId);
+      toast({
+        title: "Agreement deleted",
+        description: "The agreement has been removed from your account.",
+      });
+    } catch (error) {
+      toast({
+        title: "Delete failed",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -105,7 +108,7 @@ export const Dashboard = ({ onCreateNew, onLogout }: DashboardProps) => {
         {/* Welcome Section */}
         <div className="animate-fade-in-down">
           <h2 className="text-3xl font-bold text-gradient mb-2">
-            Welcome back, John! 👋
+            Welcome back, {currentUser?.firstName || 'User'}! 👋
           </h2>
           <p className="text-muted-foreground text-lg">
             Ready to create your next professional agreement?
@@ -113,7 +116,7 @@ export const Dashboard = ({ onCreateNew, onLogout }: DashboardProps) => {
         </div>
 
         {/* Stats */}
-        <DashboardStats />
+        <DashboardStats stats={getStats()} />
 
         {/* Quick Actions */}
         <div className="animate-fade-in-up">

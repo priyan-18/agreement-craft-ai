@@ -1,5 +1,16 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FileText, Clock, Download, TrendingUp } from "lucide-react";
+import { FileText, CheckCircle, Clock, TrendingUp } from "lucide-react";
+
+interface StatsData {
+  total: number;
+  completed: number;
+  drafts: number;
+  thisMonth: number;
+}
+
+interface DashboardStatsProps {
+  stats: StatsData;
+}
 
 interface StatsCardProps {
   title: string;
@@ -34,47 +45,52 @@ const StatsCard = ({ title, value, description, icon, trend }: StatsCardProps) =
   </Card>
 );
 
-export const DashboardStats = () => {
+export const DashboardStats = ({ stats }: DashboardStatsProps) => {
+  const statsData = [
+    {
+      title: "Total Agreements",
+      value: stats.total.toString(),
+      description: "All time created",
+      icon: <FileText className="h-4 w-4 text-primary" />,
+      trend: stats.total > 0 ? "+100%" : "0%"
+    },
+    {
+      title: "Completed",
+      value: stats.completed.toString(),
+      description: "Ready for use",
+      icon: <CheckCircle className="h-4 w-4 text-primary" />,
+      trend: stats.total > 0 ? `${Math.round((stats.completed / stats.total) * 100)}%` : "0%"
+    },
+    {
+      title: "Drafts",
+      value: stats.drafts.toString(),
+      description: "Work in progress",
+      icon: <Clock className="h-4 w-4 text-primary" />,
+      trend: stats.total > 0 ? `${Math.round((stats.drafts / stats.total) * 100)}%` : "0%"
+    },
+    {
+      title: "This Month",
+      value: stats.thisMonth.toString(),
+      description: "Created recently",
+      icon: <TrendingUp className="h-4 w-4 text-primary" />,
+      trend: stats.thisMonth > 0 ? `+${stats.thisMonth}` : "0"
+    }
+  ];
+
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <div className="animate-fade-in-up">
-        <StatsCard
-          title="Total Agreements"
-          value="12"
-          description="Agreements created this month"
-          icon={<FileText className="h-4 w-4 text-primary" />}
-          trend="+20% from last month"
-        />
-      </div>
-      
-      <div className="animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-        <StatsCard
-          title="Recent Activity"
-          value="3"
-          description="Agreements created this week"
-          icon={<Clock className="h-4 w-4 text-primary" />}
-          trend="2 pending review"
-        />
-      </div>
-      
-      <div className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-        <StatsCard
-          title="Downloads"
-          value="8"
-          description="PDFs downloaded this month"
-          icon={<Download className="h-4 w-4 text-primary" />}
-          trend="5 this week"
-        />
-      </div>
-      
-      <div className="animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-        <StatsCard
-          title="Success Rate"
-          value="100%"
-          description="Successful generations"
-          icon={<TrendingUp className="h-4 w-4 text-primary" />}
-          trend="Perfect score!"
-        />
+    <div className="animate-fade-in-up">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {statsData.map((stat, index) => (
+          <div key={stat.title} className="animate-fade-in-up" style={{ animationDelay: `${index * 0.1}s` }}>
+            <StatsCard
+              title={stat.title}
+              value={stat.value}
+              description={stat.description}
+              icon={stat.icon}
+              trend={stat.trend}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );
