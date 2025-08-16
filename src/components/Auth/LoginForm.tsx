@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { authService } from "@/services/authService";
 
 interface LoginFormProps {
   onLoginSuccess: () => void;
@@ -25,15 +26,21 @@ export const LoginForm = ({ onLoginSuccess, onSwitchToRegister }: LoginFormProps
     setLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await authService.login(formData.email, formData.password);
       
-      toast({
-        title: "Welcome back!",
-        description: "You have been logged in successfully.",
-      });
-      
-      onLoginSuccess();
+      if (response.success) {
+        toast({
+          title: "Welcome back!",
+          description: "You have been logged in successfully.",
+        });
+        onLoginSuccess();
+      } else {
+        toast({
+          title: "Login failed",
+          description: response.message || "Please check your credentials and try again.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       toast({
         title: "Login failed",

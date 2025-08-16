@@ -10,6 +10,8 @@ import { ArrowLeft, Sparkles, Globe, Download, FileText, Eye, Loader2, Save } fr
 import { useToast } from "@/hooks/use-toast";
 import { useAgreements } from "@/hooks/useAgreements";
 import { getAgreementGenerator } from "@/services/agreementFormats";
+import { generateAgreementWithAI } from "@/services/aiService";
+import { translateText } from "@/services/translationService";
 
 interface AgreementGeneratorProps {
   onBack: () => void;
@@ -420,25 +422,32 @@ export const AgreementGenerator = ({ onBack }: AgreementGeneratorProps) => {
   const generateAgreement = async () => {
     setLoading(true);
     try {
-      // Simulate AI generation
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Use AI service for enhanced generation
+      const aiResponse = await generateAgreementWithAI({
+        type: selectedType,
+        formData,
+        customInstructions: `Generate a professional, legally compliant ${selectedType} agreement in Indian government-approved format.`
+      });
+
+      setGeneratedContent(aiResponse.content);
+      setCurrentStep("preview");
       
-      // Use Indian government-approved format
+      toast({
+        title: "Agreement generated!",
+        description: "Your professional AI-powered agreement is ready for review.",
+      });
+    } catch (error) {
+      console.error('AI generation failed, falling back to template:', error);
+      
+      // Fallback to template-based generation
       const generator = getAgreementGenerator(selectedType);
       const content = generator(formData);
-
       setGeneratedContent(content);
       setCurrentStep("preview");
       
       toast({
         title: "Agreement generated!",
         description: "Your professional agreement is ready for review.",
-      });
-    } catch (error) {
-      toast({
-        title: "Generation failed",
-        description: "Please try again later.",
-        variant: "destructive",
       });
     } finally {
       setLoading(false);
@@ -448,20 +457,18 @@ export const AgreementGenerator = ({ onBack }: AgreementGeneratorProps) => {
   const translateAgreement = async (direction: "en_to_ta" | "ta_to_en") => {
     setTranslating(true);
     try {
-      // Simulate translation
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const textToTranslate = direction === "en_to_ta" ? generatedContent : translatedContent;
+      const targetLang = direction === "en_to_ta" ? "ta" : "en";
       
-      const mockTranslation = direction === "en_to_ta" 
-        ? "இந்த ஒப்பந்தம் கீழ்க்கண்ட தரப்பினர்களுக்கிடையே செய்யப்படுகிறது..."
-        : generatedContent;
-        
-      setTranslatedContent(mockTranslation);
+      const translationResponse = await translateText(textToTranslate, targetLang);
+      setTranslatedContent(translationResponse.translatedText);
       
       toast({
         title: "Translation completed!",
         description: `Agreement translated to ${direction === "en_to_ta" ? "Tamil" : "English"}.`,
       });
     } catch (error) {
+      console.error('Translation failed:', error);
       toast({
         title: "Translation failed",
         description: "Please try again later.",
@@ -519,47 +526,18 @@ export const AgreementGenerator = ({ onBack }: AgreementGeneratorProps) => {
     }
   };
 
-  const translateContent = async () => {
+  const translateToTamil = async () => {
     setTranslating(true);
     try {
-      // Simulate translation
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const mockTamilContent = `**${selectedType.toUpperCase()} ஒப்பந்தம்**
-
-இந்த ஒப்பந்தம் ${new Date().toLocaleDateString()} தேதியில் கீழே விவரிக்கப்பட்ட தரப்பினர்களுக்கு இடையே செய்யப்பட்டது.
-
-**தரப்பினர்:**
-${selectedType === 'rental' ? 
-  `- வீட்டு உரிமையாளர்: ${formData.ownerName || '[உரிமையாளர் பெயர்]'}
-- வாடகைதாரர்: ${formData.tenantName || '[வாடகைதாரர் பெயர்]'}
-
-**சொத்து விவரங்கள்:**
-முகவரி: ${formData.propertyAddress || '[சொத்து முகவரி]'}
-மாதாந்திர வாடகை: ₹${formData.monthlyRent || '[தொகை]'}
-பாதுகாப்பு வைப்பு: ₹${formData.securityDeposit || '[தொகை]'}` : 'தரப்பினர் விவரங்கள்...'}
-
-**விதிமுறைகள் மற்றும் நிபந்தனைகள்:**
-
-1. **கடமைகள்:** ஒவ்வொரு தரப்பினரும் இந்த ஒப்பந்தத்தில் குறிப்பிடப்பட்ட அந்தந்த கடமைகளை நிறைவேற்ற ஒப்புக்கொள்கின்றனர்.
-
-2. **கால அளவு:** இந்த ஒப்பந்தம் குறிப்பிட்ட கால அளவிற்கு அல்லது இதன் விதிமுறைகளின்படி முடிவு செய்யப்படும் வரை நடைமுறையில் இருக்கும்.
-
-**கையொப்பங்கள்:**
-
-தரப்பு 1: _________________________    தேதி: ______________
-
-தரப்பு 2: _________________________    தேதி: ______________
-
-**குறிப்பு:** இது AI-உறுதிப்படுத்தப்பட்ட சட்ட ஆவண டெம்ப்ளேட் ஆகும். எந்தவொரு அதிகாரப்பூர்வ நோக்கங்களுக்காகவும் இந்த ஒப்பந்தத்தைப் பயன்படுத்துவதற்கு முன்பு தகுதிவாய்ந்த சட்ட வல்லுநரிடம் ஆலோசித்துக் கொள்ளவும்.`;
-
-      setTranslatedContent(mockTamilContent);
+      const translationResponse = await translateText(generatedContent, 'ta');
+      setTranslatedContent(translationResponse.translatedText);
       
       toast({
         title: "Translation completed!",
         description: "Your agreement has been translated to Tamil.",
       });
     } catch (error) {
+      console.error('Translation failed:', error);
       toast({
         title: "Translation failed",
         description: "Please try again later.",
@@ -706,25 +684,25 @@ ${selectedType === 'rental' ?
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl">Tamil Translation</CardTitle>
-                  <Button 
-                    onClick={() => translateAgreement("en_to_ta")}
-                    disabled={translating}
-                    variant={translatedContent ? "outline" : "default"}
-                    size="sm" 
-                    className="btn-hover"
-                  >
-                    {translating ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Translating...
-                      </>
-                    ) : (
-                      <>
-                        <Globe className="h-4 w-4 mr-2" />
-                        {translatedContent ? "Re-translate" : "Translate"}
-                      </>
-                    )}
-                  </Button>
+              <Button 
+                onClick={translateToTamil}
+                disabled={translating}
+                variant={translatedContent ? "outline" : "default"}
+                size="sm" 
+                className="btn-hover"
+              >
+                {translating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Translating...
+                  </>
+                ) : (
+                  <>
+                    <Globe className="h-4 w-4 mr-2" />
+                    {translatedContent ? "Re-translate" : "Translate"}
+                  </>
+                )}
+              </Button>
                 </div>
               </CardHeader>
               <CardContent>
@@ -760,7 +738,7 @@ ${selectedType === 'rental' ?
               </Button>
               
               <Button
-                onClick={() => translateAgreement("en_to_ta")}
+                onClick={translateToTamil}
                 disabled={translating}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white btn-hover"
               >

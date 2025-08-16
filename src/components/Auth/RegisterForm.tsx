@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, EyeOff, Mail, Lock, User, Phone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { authService } from "@/services/authService";
 import { OTPVerification } from "./OTPVerification";
 
 interface RegisterFormProps {
@@ -77,23 +78,27 @@ export const RegisterForm = ({ onRegisterSuccess, onSwitchToLogin }: RegisterFor
 
   const handleOTPVerified = async () => {
     try {
-      // Save user data after OTP verification
-      const userData = {
+      const response = await authService.register({
         firstName: formData.firstName,
         lastName: formData.lastName,
-        email: formData.email,
-        phone: formData.phone,
-        createdAt: new Date().toISOString(),
-      };
-      
-      localStorage.setItem('currentUser', JSON.stringify(userData));
-      
-      toast({
-        title: "Account created!",
-        description: "Welcome to Agreement Generator. You can now sign in.",
+        username: formData.email,
+        mobile: formData.phone,
+        password: formData.password
       });
       
-      onRegisterSuccess();
+      if (response.success) {
+        toast({
+          title: "Account created!",
+          description: "Welcome to Agreement Generator. You can now sign in.",
+        });
+        onRegisterSuccess();
+      } else {
+        toast({
+          title: "Registration failed",
+          description: response.message || "Please try again later.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       toast({
         title: "Registration failed",
