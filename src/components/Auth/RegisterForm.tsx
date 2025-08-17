@@ -56,11 +56,29 @@ export const RegisterForm = ({ onRegisterSuccess, onSwitchToLogin }: RegisterFor
     setLoading(true);
 
     try {
+      // Check if user already exists BEFORE sending OTP
+      const users = JSON.parse(localStorage.getItem('registered_users') || '[]');
+      const existingUser = users.find((u: any) => 
+        u.username === formData.email || u.mobile === formData.phone
+      );
+
+      if (existingUser) {
+        toast({
+          title: "Account already exists",
+          description: existingUser.username === formData.email 
+            ? "An account with this email already exists. Please try signing in." 
+            : "An account with this mobile number already exists. Please try signing in.",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
       // Simulate OTP sending
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       toast({
-        title: "OTP Sent!",
+        title: "🚀 OTP Sent!",
         description: `Verification code sent to +91 ${formData.phone}`,
       });
       
@@ -88,8 +106,8 @@ export const RegisterForm = ({ onRegisterSuccess, onSwitchToLogin }: RegisterFor
       
       if (response.success) {
         toast({
-          title: "Account created!",
-          description: "Welcome to Agreement Generator. You can now sign in.",
+          title: "✨ Account created successfully!",
+          description: "Welcome to Agreement Generator Pro! You can now sign in.",
         });
         onRegisterSuccess();
       } else {
@@ -98,6 +116,8 @@ export const RegisterForm = ({ onRegisterSuccess, onSwitchToLogin }: RegisterFor
           description: response.message || "Please try again later.",
           variant: "destructive",
         });
+        // Go back to form to try again
+        setShowOTP(false);
       }
     } catch (error) {
       toast({
@@ -105,6 +125,8 @@ export const RegisterForm = ({ onRegisterSuccess, onSwitchToLogin }: RegisterFor
         description: "Please try again later.",
         variant: "destructive",
       });
+      // Go back to form to try again
+      setShowOTP(false);
     }
   };
 
@@ -120,13 +142,13 @@ export const RegisterForm = ({ onRegisterSuccess, onSwitchToLogin }: RegisterFor
 
   return (
     <div className="animate-fade-in-up">
-      <Card className="glass-card border-0 shadow-xl">
+      <Card className="glass-morph border border-primary/30 shadow-2xl backdrop-blur-2xl">
         <CardHeader className="text-center space-y-2">
-          <CardTitle className="text-2xl font-bold text-gradient">
-            Create Account
+          <CardTitle className="text-3xl font-bold text-cosmic">
+            ✨ Create Account
           </CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Join thousands generating professional agreements
+          <CardDescription className="text-muted-foreground text-lg">
+            Join thousands generating professional agreements with AI
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -256,16 +278,18 @@ export const RegisterForm = ({ onRegisterSuccess, onSwitchToLogin }: RegisterFor
 
             <Button 
               type="submit" 
-              className="w-full primary-gradient btn-hover text-white"
+              className="w-full btn-cosmic text-white font-bold"
               disabled={loading}
             >
               {loading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                  Sending OTP...
+                  Verifying & Sending OTP...
                 </>
               ) : (
-                "Send OTP"
+                <>
+                  🚀 Send OTP & Create Account
+                </>
               )}
             </Button>
 
