@@ -125,7 +125,11 @@ export default {
 				'scale-in': 'scale-in 0.3s ease-out',
 				'slide-in-right': 'slide-in-right 0.4s ease-out',
 				'slide-in-left': 'slide-in-left 0.4s ease-out',
-				'pulse-glow': 'pulse-glow 2s ease-in-out infinite'
+				'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
+				'cosmic-drift': 'cosmic-drift 12s ease-in-out infinite',
+				'neon-pulse': 'neon-pulse 3s ease-in-out infinite',
+				'morphing-gradient': 'morphing-gradient 8s ease infinite',
+				'levitate': 'levitate 4s ease-in-out infinite'
 			}
 		}
 	},

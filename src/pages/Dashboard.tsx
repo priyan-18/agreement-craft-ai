@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardStats } from "@/components/Dashboard/DashboardStats";
-import { Plus, FileText, Eye, Download, Trash2, Globe, LogOut } from "lucide-react";
+import { AgreementViewer } from "@/components/AgreementViewer";
+import { Plus, FileText, Eye, Download, Trash2, Globe, LogOut, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAgreements } from "@/hooks/useAgreements";
+import heroImage from "@/assets/hero-legal-cosmic.jpg";
 
 interface DashboardProps {
   onCreateNew: () => void;
@@ -15,6 +17,7 @@ export const Dashboard = ({ onCreateNew, onLogout }: DashboardProps) => {
   const { toast } = useToast();
   const { agreements, loading, deleteAgreement, getStats } = useAgreements();
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [viewingAgreement, setViewingAgreement] = useState<any>(null);
 
   useEffect(() => {
     const userData = localStorage.getItem('currentUser');
@@ -61,41 +64,71 @@ export const Dashboard = ({ onCreateNew, onLogout }: DashboardProps) => {
     }
   };
 
+  const handleViewAgreement = (agreementId: string) => {
+    const agreement = agreements.find(a => a.id === agreementId);
+    if (agreement) {
+      setViewingAgreement(agreement);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     if (status === "completed") {
       return (
-        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary/20 text-secondary">
-          Completed
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-secondary/20 text-secondary border border-secondary/30 neon-glow">
+          ✨ Completed
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-        Draft
+      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-300 border border-yellow-500/30">
+        📝 Draft
       </span>
     );
   };
 
+  // If viewing an agreement, show the viewer
+  if (viewingAgreement) {
+    return (
+      <AgreementViewer 
+        agreement={viewingAgreement} 
+        onBack={() => setViewingAgreement(null)} 
+      />
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-app">
-      {/* Header */}
-      <div className="bg-white/80 backdrop-blur-lg border-b border-white/20">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-gradient-app relative overflow-hidden">
+      {/* Cosmic Background Elements */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl cosmic-float" />
+        <div className="absolute top-3/4 right-1/4 w-64 h-64 bg-secondary/10 rounded-full blur-3xl cosmic-float" 
+             style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-3/4 w-48 h-48 bg-primary/5 rounded-full blur-2xl cosmic-float" 
+             style={{ animationDelay: '4s' }} />
+        <div 
+          className="absolute inset-0 opacity-5"
+          style={{ backgroundImage: `url(${heroImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+        />
+      </div>
+
+      {/* Enhanced Header */}
+      <div className="relative z-10 glass-morph border-b border-primary/20">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-between animate-fade-in-down">
             <div className="flex items-center space-x-4">
-              <div className="p-2 primary-gradient rounded-lg">
-                <FileText className="h-6 w-6 text-white" />
+              <div className="p-3 morphing-bg rounded-xl shadow-xl neon-glow">
+                <Sparkles className="h-8 w-8 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gradient">Agreement Generator</h1>
-                <p className="text-sm text-muted-foreground">Professional legal documents</p>
+                <h1 className="text-2xl font-bold text-cosmic">Agreement Generator Pro</h1>
+                <p className="text-sm text-muted-foreground">✨ AI-Powered Legal Documents</p>
               </div>
             </div>
             
             <Button 
               variant="outline" 
               onClick={onLogout}
-              className="btn-hover"
+              className="btn-hover glass-morph border-primary/30 text-primary hover:bg-primary/10"
             >
               <LogOut className="h-4 w-4 mr-2" />
               Sign Out
@@ -104,47 +137,53 @@ export const Dashboard = ({ onCreateNew, onLogout }: DashboardProps) => {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8 space-y-8">
-        {/* Welcome Section */}
-        <div className="animate-fade-in-down">
-          <h2 className="text-3xl font-bold text-gradient mb-2">
-            Welcome back, {currentUser?.firstName || 'User'}! 👋
+      <div className="container mx-auto px-4 py-8 space-y-8 relative z-10">
+        {/* Enhanced Welcome Section */}
+        <div className="text-center animate-fade-in-down">
+          <h2 className="text-4xl font-bold text-cosmic mb-4">
+            Welcome back, {currentUser?.firstName || 'User'}! 🚀
           </h2>
-          <p className="text-muted-foreground text-lg">
-            Ready to create your next professional agreement?
+          <p className="text-muted-foreground text-xl max-w-2xl mx-auto">
+            Ready to craft your next <span className="text-primary font-semibold">AI-powered</span> legal masterpiece?
           </p>
         </div>
 
         {/* Stats */}
         <DashboardStats stats={getStats()} />
 
-        {/* Quick Actions */}
+        {/* Enhanced Quick Actions */}
         <div className="animate-fade-in-up">
-          <Card className="glass-card border-0 shadow-xl">
-            <CardHeader>
-              <CardTitle className="text-2xl text-gradient">Quick Actions</CardTitle>
-              <CardDescription>
-                Start creating or managing your agreements
+          <Card className="glass-morph border border-primary/20 shadow-2xl levitate-card">
+            <CardHeader className="text-center">
+              <CardTitle className="text-3xl text-cosmic flex items-center justify-center">
+                <Sparkles className="h-8 w-8 mr-3 animate-pulse-glow" />
+                Quick Actions
+              </CardTitle>
+              <CardDescription className="text-lg">
+                🎯 Start creating or managing your agreements
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-6 md:grid-cols-2">
                 <Button 
                   onClick={onCreateNew}
-                  className="h-24 primary-gradient text-white btn-hover text-lg"
+                  className="h-32 btn-cosmic text-white text-xl font-bold relative group overflow-hidden"
                 >
-                  <Plus className="h-6 w-6 mr-3" />
-                  Create New Agreement
+                  <div className="relative z-10 flex flex-col items-center">
+                    <Plus className="h-8 w-8 mb-2 group-hover:rotate-180 transition-transform duration-500" />
+                    <span>Create New Agreement</span>
+                    <span className="text-sm opacity-80 mt-1">✨ AI-Powered</span>
+                  </div>
                 </Button>
                 
-                <div className="grid gap-2">
-                  <Button variant="outline" className="btn-hover">
-                    <FileText className="h-4 w-4 mr-2" />
-                    View Templates
+                <div className="grid gap-3">
+                  <Button variant="outline" className="btn-hover h-14 glass-morph border-primary/30 text-primary">
+                    <FileText className="h-5 w-5 mr-2" />
+                    📋 View Templates
                   </Button>
-                  <Button variant="outline" className="btn-hover">
-                    <Globe className="h-4 w-4 mr-2" />
-                    Translation History
+                  <Button variant="outline" className="btn-hover h-14 glass-morph border-secondary/30 text-secondary">
+                    <Globe className="h-5 w-5 mr-2" />
+                    🌍 Translation History
                   </Button>
                 </div>
               </div>
@@ -195,7 +234,7 @@ export const Dashboard = ({ onCreateNew, onLogout }: DashboardProps) => {
                           </div>
                           
                           <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" className="btn-hover">
+                            <Button variant="outline" size="sm" className="btn-hover" onClick={() => handleViewAgreement(agreement.id)}>
                               <Eye className="h-4 w-4" />
                             </Button>
                             <Button variant="outline" size="sm" className="btn-hover" onClick={() => handleDownload(agreement.id)}>
