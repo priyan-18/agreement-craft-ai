@@ -14,13 +14,214 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      agreement_parties: {
+        Row: {
+          agreement_id: string
+          id: string
+          invited_at: string
+          responded_at: string | null
+          role: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          agreement_id: string
+          id?: string
+          invited_at?: string
+          responded_at?: string | null
+          role: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          agreement_id?: string
+          id?: string
+          invited_at?: string
+          responded_at?: string | null
+          role?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agreement_parties_agreement_id_fkey"
+            columns: ["agreement_id"]
+            isOneToOne: false
+            referencedRelation: "agreements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agreements: {
+        Row: {
+          content: string
+          created_at: string
+          creator_id: string
+          form_data: Json
+          id: string
+          pdf_url: string | null
+          status: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          creator_id: string
+          form_data?: Json
+          id?: string
+          pdf_url?: string | null
+          status?: string
+          title: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          creator_id?: string
+          form_data?: Json
+          id?: string
+          pdf_url?: string | null
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          agreement_id: string
+          created_at: string
+          details: Json
+          id: string
+          ip_address: unknown | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          agreement_id: string
+          created_at?: string
+          details?: Json
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          agreement_id?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          ip_address?: unknown | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_agreement_id_fkey"
+            columns: ["agreement_id"]
+            isOneToOne: false
+            referencedRelation: "agreements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          mobile: string | null
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          mobile?: string | null
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          mobile?: string | null
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      signatures: {
+        Row: {
+          agreement_id: string
+          id: string
+          ip_address: unknown | null
+          signature_data: Json
+          signature_type: string
+          signed_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          agreement_id: string
+          id?: string
+          ip_address?: unknown | null
+          signature_data?: Json
+          signature_type: string
+          signed_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          agreement_id?: string
+          id?: string
+          ip_address?: unknown | null
+          signature_data?: Json
+          signature_type?: string
+          signed_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signatures_agreement_id_fkey"
+            columns: ["agreement_id"]
+            isOneToOne: false
+            referencedRelation: "agreements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_audit_log: {
+        Args: {
+          p_action: string
+          p_agreement_id: string
+          p_details?: Json
+          p_ip_address?: unknown
+          p_user_agent?: string
+          p_user_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
