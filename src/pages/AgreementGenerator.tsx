@@ -8,20 +8,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AgreementTypeSelector } from "@/components/Agreement/AgreementTypeSelector";
 import { ArrowLeft, Sparkles, Globe, Download, FileText, Eye, Loader2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAgreements } from "@/hooks/useAgreements";
+import { useSupabaseAgreements } from "@/hooks/useSupabaseAgreements";
 import { getAgreementGenerator } from "@/services/agreementFormats";
 import { generateAgreementWithAI } from "@/services/aiService";
 import { translateText } from "@/services/translationService";
 
 interface AgreementGeneratorProps {
-  onBack: () => void;
+  onBack?: () => void;
+  onAgreementCreated?: () => void;
 }
 
 interface FormData {
   [key: string]: any;
 }
 
-export const AgreementGenerator = ({ onBack }: AgreementGeneratorProps) => {
+export const AgreementGenerator = ({ onBack, onAgreementCreated }: AgreementGeneratorProps) => {
   const [currentStep, setCurrentStep] = useState<"select" | "form" | "preview">("select");
   const [selectedType, setSelectedType] = useState<string>("");
   const [formData, setFormData] = useState<FormData>({});
@@ -31,7 +32,7 @@ export const AgreementGenerator = ({ onBack }: AgreementGeneratorProps) => {
   const [translating, setTranslating] = useState(false);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
-  const { saveAgreement } = useAgreements();
+  const { createAgreement } = useSupabaseAgreements();
 
   const handleTypeSelect = (type: string) => {
     setSelectedType(type);
@@ -488,11 +489,10 @@ export const AgreementGenerator = ({ onBack }: AgreementGeneratorProps) => {
         title,
         type: selectedType,
         content: generatedContent,
-        formData,
-        status: "completed" as const,
+        form_data: formData,
       };
 
-      saveAgreement(agreement);
+      await createAgreement(agreement);
       
       toast({
         title: "Agreement saved!",
