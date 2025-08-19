@@ -25,7 +25,7 @@ interface Agreement {
   type: string;
   content: string;
   status: string;
-  createdAt: string;
+  created_at: string;
   translation?: {
     tamil: string;
   };
@@ -202,7 +202,7 @@ export const AgreementViewer = ({ agreement, onBack }: AgreementViewerProps) => 
                     </span>
                     <span className="flex items-center">
                       <Calendar className="h-4 w-4 mr-1" />
-                      Created {new Date(agreement.createdAt).toLocaleDateString('en-US', {
+                      Created {new Date(agreement.created_at).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric'

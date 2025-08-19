@@ -5,26 +5,35 @@ import { DashboardStats } from "@/components/Dashboard/DashboardStats";
 import { AgreementViewer } from "@/components/AgreementViewer";
 import { Plus, FileText, Eye, Download, Trash2, Globe, LogOut, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAgreements } from "@/hooks/useAgreements";
+import { useSupabaseAgreements } from "@/hooks/useSupabaseAgreements";
+import { useAuth } from "@/hooks/useAuth";
 import heroImage from "@/assets/hero-legal-cosmic.jpg";
 
 interface DashboardProps {
   onCreateNew: () => void;
-  onLogout: () => void;
 }
 
-export const Dashboard = ({ onCreateNew, onLogout }: DashboardProps) => {
+export const Dashboard = ({ onCreateNew }: DashboardProps) => {
   const { toast } = useToast();
-  const { agreements, loading, deleteAgreement, getStats } = useAgreements();
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const { agreements, loading, deleteAgreement, getStats } = useSupabaseAgreements();
+  const { user, signOut } = useAuth();
   const [viewingAgreement, setViewingAgreement] = useState<any>(null);
 
-  useEffect(() => {
-    const userData = localStorage.getItem('currentUser');
-    if (userData) {
-      setCurrentUser(JSON.parse(userData));
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Signed out",
+        description: "You have been successfully signed out.",
+      });
+    } catch (error) {
+      toast({
+        title: "Sign out failed",
+        description: "Please try again.",
+        variant: "destructive",
+      });
     }
-  }, []);
+  };
 
   const handleDownload = (agreementId: string) => {
     const agreement = agreements.find(a => a.id === agreementId);
@@ -127,7 +136,7 @@ export const Dashboard = ({ onCreateNew, onLogout }: DashboardProps) => {
             
             <Button 
               variant="outline" 
-              onClick={onLogout}
+              onClick={handleLogout}
               className="btn-hover glass-morph border-primary/30 text-primary hover:bg-primary/10"
             >
               <LogOut className="h-4 w-4 mr-2" />
@@ -141,7 +150,7 @@ export const Dashboard = ({ onCreateNew, onLogout }: DashboardProps) => {
         {/* Enhanced Welcome Section */}
         <div className="text-center animate-fade-in-down">
           <h2 className="text-4xl font-bold text-cosmic mb-4">
-            Welcome back, {currentUser?.firstName || 'User'}! 🚀
+            Welcome back, {user?.user_metadata?.first_name || 'User'}! 🚀
           </h2>
           <p className="text-muted-foreground text-xl max-w-2xl mx-auto">
             Ready to craft your next <span className="text-primary font-semibold">AI-powered</span> legal masterpiece?
@@ -229,7 +238,7 @@ export const Dashboard = ({ onCreateNew, onLogout }: DashboardProps) => {
                                 <FileText className="h-4 w-4 mr-1" />
                                 {agreement.type}
                               </span>
-                              <span>Created {new Date(agreement.createdAt).toLocaleDateString()}</span>
+                              <span>Created {new Date(agreement.created_at).toLocaleDateString()}</span>
                             </div>
                           </div>
                           

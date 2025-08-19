@@ -6,10 +6,10 @@ import { FileText, Sparkles, Globe, Shield, Zap, Atom } from "lucide-react";
 import heroImage from "@/assets/hero-legal-cosmic.jpg";
 
 interface AuthPageProps {
-  onAuthSuccess: () => void;
+  onAuthSuccess?: () => void;
 }
 
-export const AuthPage = ({ onAuthSuccess }: AuthPageProps) => {
+export const AuthPage = ({ onAuthSuccess }: AuthPageProps = {}) => {
   const [isLogin, setIsLogin] = useState(true);
 
   const features = [
@@ -121,7 +121,7 @@ export const AuthPage = ({ onAuthSuccess }: AuthPageProps) => {
                   
                   {isLogin ? (
                     <LoginForm 
-                      onLoginSuccess={onAuthSuccess}
+                      onLoginSuccess={onAuthSuccess || (() => {})}
                       onSwitchToRegister={() => setIsLogin(false)}
                     />
                   ) : (

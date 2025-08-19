@@ -395,8 +395,16 @@ export const useSupabaseAgreements = () => {
     const completed = agreements.filter(a => a.status === 'completed').length;
     const pending = agreements.filter(a => a.status === 'pending' || a.status === 'partially_signed').length;
     const drafts = agreements.filter(a => a.status === 'draft').length;
+    
+    // Calculate this month's agreements
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const thisMonth = agreements.filter(a => {
+      const createdAt = new Date(a.created_at);
+      return createdAt >= firstDayOfMonth;
+    }).length;
 
-    return { total, completed, pending, drafts };
+    return { total, completed, pending, drafts, thisMonth };
   };
 
   return {

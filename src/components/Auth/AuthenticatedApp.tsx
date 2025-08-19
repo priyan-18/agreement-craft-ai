@@ -112,7 +112,7 @@ export const AuthenticatedApp = () => {
     if (agreement) {
       return (
         <AgreementViewer 
-          agreement={{...agreement, createdAt: agreement.created_at}}
+          agreement={agreement}
           onBack={() => {
             setCurrentView('dashboard');
             setSelectedAgreement(null);
