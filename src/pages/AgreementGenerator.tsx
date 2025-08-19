@@ -548,21 +548,41 @@ export const AgreementGenerator = ({ onBack, onAgreementCreated }: AgreementGene
     }
   };
 
-  const downloadPDF = () => {
+  const downloadPDF = async () => {
     toast({
       title: "PDF Download",
       description: "Your agreement PDF is being generated and will download shortly.",
     });
-    // Simulate PDF generation
-    setTimeout(() => {
-      const element = document.createElement('a');
-      const file = new Blob([generatedContent], {type: 'text/plain'});
-      element.href = URL.createObjectURL(file);
-      element.download = `${selectedType}-agreement.txt`;
-      document.body.appendChild(element);
-      element.click();
-      document.body.removeChild(element);
-    }, 1500);
+    
+    try {
+      // Create a temporary agreement object for PDF generation
+      const tempAgreement = {
+        id: '',
+        title: getAgreementTitle(),
+        type: selectedType,
+        content: generatedContent,
+        form_data: formData,
+        status: 'draft' as const,
+        creator_id: '',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Import PDF service dynamically
+      const { downloadPDF: downloadPDFService } = await import('@/services/pdfService');
+      await downloadPDFService(tempAgreement);
+      
+      toast({
+        title: "PDF Downloaded",
+        description: "Your agreement has been downloaded successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Download failed",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (currentStep === "select") {

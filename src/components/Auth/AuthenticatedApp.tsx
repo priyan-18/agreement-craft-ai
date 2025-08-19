@@ -1,112 +1,156 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { useSupabaseAgreements, Agreement } from '@/hooks/useSupabaseAgreements';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
 import { 
-  LogOut, 
   Plus, 
   FileText, 
-  Users, 
-  CheckCircle, 
   Clock, 
+  CheckCircle, 
+  Users, 
+  Download, 
   Eye,
-  Download,
+  LogOut,
   Trash2,
-  Send,
+  Share2,
+  PenTool,
   AlertCircle
 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { useSupabaseAgreements } from '@/hooks/useSupabaseAgreements';
-import { EnhancedFloatingElements } from '../EnhancedFloatingElements';
 import { AgreementGenerator } from '@/pages/AgreementGenerator';
-import { AgreementViewer } from '../AgreementViewer';
+import { AgreementViewer } from '@/components/AgreementViewer';
 import { InvitePartyDialog } from './InvitePartyDialog';
 import { SignAgreementDialog } from './SignAgreementDialog';
+import { toast } from '@/hooks/use-toast';
+import { DashboardStats } from '@/components/Dashboard/DashboardStats';
+
+type ViewType = 'dashboard' | 'generator' | 'view';
 
 export const AuthenticatedApp = () => {
-  const { user, profile, signOut } = useAuth();
-  const { agreements, loading, deleteAgreement, getStats } = useSupabaseAgreements();
-  const [currentView, setCurrentView] = useState<'dashboard' | 'create' | 'view'>('dashboard');
+  const { user, signOut } = useAuth();
+  const { 
+    agreements, 
+    loading, 
+    deleteAgreement, 
+    inviteParty, 
+    signAgreement, 
+    getStats 
+  } = useSupabaseAgreements();
+  
+  const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [selectedAgreement, setSelectedAgreement] = useState<string | null>(null);
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [signDialogOpen, setSignDialogOpen] = useState(false);
-  const [selectedAgreementForAction, setSelectedAgreementForAction] = useState<string | null>(null);
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [showSignDialog, setShowSignDialog] = useState(false);
+  const [inviteAgreementId, setInviteAgreementId] = useState<string | null>(null);
+  const [signAgreementId, setSignAgreementId] = useState<string | null>(null);
 
-  const stats = getStats();
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
-  const getStatusBadge = (status: string) => {
-    const statusStyles = {
-      draft: 'bg-gray-100 text-gray-800 border-gray-200',
-      pending: 'bg-blue-100 text-blue-800 border-blue-200',
-      partially_signed: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      completed: 'bg-green-100 text-green-800 border-green-200',
-      rejected: 'bg-red-100 text-red-800 border-red-200'
-    };
+  const handleDelete = async (agreementId: string) => {
+    if (!confirm('Are you sure you want to delete this agreement?')) return;
     
-    const statusLabels = {
-      draft: 'Draft',
-      pending: 'Pending',
-      partially_signed: 'Partially Signed',
-      completed: 'Completed',
-      rejected: 'Rejected'
+    try {
+      await deleteAgreement(agreementId);
+      toast({
+        title: "Agreement deleted",
+        description: "The agreement has been permanently deleted.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Delete failed",
+        description: error.message || "Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownload = async (agreementId: string) => {
+    const agreement = agreements.find(a => a.id === agreementId);
+    if (!agreement) return;
+
+    try {
+      toast({
+        title: "PDF Download",
+        description: "Generating your agreement PDF...",
+      });
+
+      const { downloadPDF } = await import('@/services/pdfService');
+      await downloadPDF(agreement);
+      
+      toast({
+        title: "PDF Downloaded",
+        description: "Your agreement has been downloaded successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Download failed",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleInviteParty = async (email: string) => {
+    if (!inviteAgreementId) return;
+    
+    try {
+      await inviteParty(inviteAgreementId, email);
+      setShowInviteDialog(false);
+      setInviteAgreementId(null);
+    } catch (error: any) {
+      toast({
+        title: "Invite failed",
+        description: error.message || "Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSign = async (signatureType: 'digital' | 'otp', signatureData: any = {}) => {
+    if (!signAgreementId) return;
+    
+    try {
+      await signAgreement(signAgreementId, signatureType, signatureData);
+      setShowSignDialog(false);
+      setSignAgreementId(null);
+    } catch (error: any) {
+      toast({
+        title: "Sign failed",
+        description: error.message || "Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getStatusBadge = (status: Agreement['status']) => {
+    const statusConfig = {
+      draft: { color: 'secondary', icon: Clock, label: 'Draft' },
+      pending: { color: 'default', icon: AlertCircle, label: 'Pending' },
+      partially_signed: { color: 'orange', icon: PenTool, label: 'Partially Signed' },
+      completed: { color: 'success', icon: CheckCircle, label: 'Completed' },
+      rejected: { color: 'destructive', icon: AlertCircle, label: 'Rejected' }
     };
+
+    const config = statusConfig[status];
+    const Icon = config.icon;
 
     return (
-      <Badge className={statusStyles[status as keyof typeof statusStyles]}>
-        {statusLabels[status as keyof typeof statusLabels]}
+      <Badge variant={config.color as any} className="flex items-center gap-1">
+        <Icon className="h-3 w-3" />
+        {config.label}
       </Badge>
     );
   };
 
-  const canUserSign = (agreement: any) => {
-    if (!user) return false;
-    
-    // Check if user is a party and hasn't signed yet
-    const userParty = agreement.parties?.find((p: any) => p.user_id === user.id);
-    const userSignature = agreement.signatures?.find((s: any) => s.user_id === user.id);
-    
-    return userParty && !userSignature && agreement.status !== 'completed';
-  };
-
-  const isUserCreator = (agreement: any) => {
-    return user && agreement.creator_id === user.id;
-  };
-
-  const handleViewAgreement = (agreementId: string) => {
-    setSelectedAgreement(agreementId);
-    setCurrentView('view');
-  };
-
-  const handleInviteParty = (agreementId: string) => {
-    setSelectedAgreementForAction(agreementId);
-    setInviteDialogOpen(true);
-  };
-
-  const handleSignAgreement = (agreementId: string) => {
-    setSelectedAgreementForAction(agreementId);
-    setSignDialogOpen(true);
-  };
-
-  const handleDelete = async (agreementId: string) => {
-    if (confirm('Are you sure you want to delete this agreement?')) {
-      try {
-        await deleteAgreement(agreementId);
-      } catch (error: any) {
-        console.error('Delete error:', error);
-      }
-    }
-  };
-
-  if (currentView === 'create') {
-    return (
-      <AgreementGenerator 
-        onBack={() => setCurrentView('dashboard')}
-        onAgreementCreated={() => setCurrentView('dashboard')}
-      />
-    );
-  }
-
+  // View specific agreement
   if (currentView === 'view' && selectedAgreement) {
     const agreement = agreements.find(a => a.id === selectedAgreement);
     if (agreement) {
@@ -122,275 +166,217 @@ export const AuthenticatedApp = () => {
     }
   }
 
+  // Agreement generator view
+  if (currentView === 'generator') {
+    return (
+      <AgreementGenerator
+        onBack={() => setCurrentView('dashboard')}
+        onAgreementCreated={() => setCurrentView('dashboard')}
+      />
+    );
+  }
+
+  // Main dashboard view
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/10">
-      <EnhancedFloatingElements />
-      
-      {/* Header */}
-      <div className="relative z-10 border-b bg-background/80 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+    <div className="min-h-screen bg-gradient-app">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              Agreement Generator
+            <h1 className="text-4xl font-bold text-gradient mb-2">
+              Welcome back, {user?.user_metadata?.first_name || 'User'}! 🚀
             </h1>
-            <p className="text-sm text-muted-foreground">
-              Welcome back, {profile?.first_name || profile?.username || user?.email}
+            <p className="text-muted-foreground text-lg">
+              Manage your agreements with AI-powered tools
             </p>
           </div>
-          
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={() => setCurrentView('create')}
-              className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Create Agreement
-            </Button>
-            <Button variant="outline" onClick={signOut}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <div className="relative z-10 max-w-7xl mx-auto px-4 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 border-blue-200/50">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-blue-600">Total Agreements</p>
-                  <p className="text-3xl font-bold text-blue-900">{stats.total}</p>
-                </div>
-                <FileText className="w-8 h-8 text-blue-500" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-green-50 to-green-100/50 border-green-200/50">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-green-600">Completed</p>
-                  <p className="text-3xl font-bold text-green-900">{stats.completed}</p>
-                </div>
-                <CheckCircle className="w-8 h-8 text-green-500" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100/50 border-yellow-200/50">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-yellow-600">Pending</p>
-                  <p className="text-3xl font-bold text-yellow-900">{stats.pending}</p>
-                </div>
-                <Clock className="w-8 h-8 text-yellow-500" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-gray-50 to-gray-100/50 border-gray-200/50">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Drafts</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats.drafts}</p>
-                </div>
-                <FileText className="w-8 h-8 text-gray-500" />
-              </div>
-            </CardContent>
-          </Card>
+          <Button 
+            variant="outline" 
+            onClick={handleLogout}
+            className="btn-hover glass-morph border-primary/30 text-primary hover:bg-primary/10"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign Out
+          </Button>
         </div>
 
-        {/* My Agreements */}
-        <Card className="bg-background/80 backdrop-blur-sm border-border/50">
+        {/* Stats */}
+        <div className="mb-8">
+          <DashboardStats stats={getStats()} />
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-4 mb-8">
+          <Button 
+            onClick={() => setCurrentView('generator')}
+            className="primary-gradient text-white btn-hover shadow-lg"
+            size="lg"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Create New Agreement
+          </Button>
+        </div>
+
+        {/* Agreements List */}
+        <Card className="glass-card border-0 shadow-xl">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              My Agreements
+            <CardTitle className="text-2xl text-gradient flex items-center gap-2">
+              <FileText className="h-6 w-6" />
+              Your Agreements
             </CardTitle>
+            <CardDescription>
+              Manage and track all your legal agreements in one place
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="all">
-              <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="pending">Pending</TabsTrigger>
-                <TabsTrigger value="signed">Signed</TabsTrigger>
-                <TabsTrigger value="completed">Completed</TabsTrigger>
-                <TabsTrigger value="drafts">Drafts</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="all" className="space-y-4">
-                {loading ? (
-                  <div className="text-center py-8 text-muted-foreground">Loading agreements...</div>
-                ) : agreements.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p>No agreements found. Create your first agreement to get started!</p>
-                  </div>
-                ) : (
-                  agreements.map((agreement) => (
-                    <Card key={agreement.id} className="hover:shadow-md transition-shadow">
-                      <CardContent className="p-6">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <h3 className="font-semibold text-lg">{agreement.title}</h3>
-                              {getStatusBadge(agreement.status)}
-                            </div>
-                            
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
-                              <span className="capitalize">{agreement.type}</span>
-                              <span>•</span>
-                              <span>Created {new Date(agreement.created_at).toLocaleDateString()}</span>
-                              {agreement.parties && agreement.parties.length > 0 && (
-                                <>
-                                  <span>•</span>
-                                  <span>{agreement.parties.length} parties</span>
-                                </>
-                              )}
-                            </div>
-
-                            {/* Parties info */}
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Loading your agreements...</p>
+                </div>
+              </div>
+            ) : agreements.length === 0 ? (
+              <div className="text-center py-12">
+                <FileText className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-muted-foreground mb-2">No agreements yet</h3>
+                <p className="text-muted-foreground mb-6">Create your first AI-powered agreement to get started</p>
+                <Button 
+                  onClick={() => setCurrentView('generator')}
+                  className="primary-gradient text-white btn-hover"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First Agreement
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {agreements.map((agreement) => (
+                  <Card key={agreement.id} className="glass-morph border border-primary/20 shadow-md hover:shadow-lg transition-all duration-300 card-hover">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-semibold text-lg">{agreement.title}</h3>
+                            {getStatusBadge(agreement.status)}
+                          </div>
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+                            <span className="flex items-center">
+                              <FileText className="h-4 w-4 mr-1" />
+                              {agreement.type}
+                            </span>
+                            <span>Created {new Date(agreement.created_at).toLocaleDateString()}</span>
                             {agreement.parties && agreement.parties.length > 0 && (
-                              <div className="flex items-center gap-2 mb-3">
-                                <Users className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm text-muted-foreground">
-                                  Parties: {agreement.parties.map(p => 
-                                    `${p.profile?.first_name || p.profile?.username}` + 
-                                    (p.status === 'signed' ? ' ✓' : '')
-                                  ).join(', ')}
-                                </span>
-                              </div>
-                            )}
-
-                            {/* Signing status */}
-                            {canUserSign(agreement) && (
-                              <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                <AlertCircle className="w-4 h-4 text-yellow-600" />
-                                <span className="text-sm text-yellow-800">Your signature is required</span>
-                              </div>
+                              <span className="flex items-center">
+                                <Users className="h-4 w-4 mr-1" />
+                                {agreement.parties.length} parties
+                              </span>
                             )}
                           </div>
                           
-                          <div className="flex items-center gap-2 ml-4">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleViewAgreement(agreement.id)}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            
-                            {isUserCreator(agreement) && agreement.status === 'draft' && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleInviteParty(agreement.id)}
-                              >
-                                <Send className="w-4 h-4" />
-                              </Button>
-                            )}
-                            
-                            {canUserSign(agreement) && (
-                              <Button
-                                variant="default"
-                                size="sm"
-                                onClick={() => handleSignAgreement(agreement.id)}
-                                className="bg-green-600 hover:bg-green-700"
-                              >
-                                Sign
-                              </Button>
-                            )}
-                            
-                            {isUserCreator(agreement) && agreement.status === 'draft' && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDelete(agreement.id)}
-                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
-              </TabsContent>
-
-              {/* Add filtered views for other tabs */}
-              {['pending', 'signed', 'completed', 'drafts'].map(status => (
-                <TabsContent key={status} value={status} className="space-y-4">
-                  {agreements
-                    .filter(a => {
-                      if (status === 'pending') return a.status === 'pending' || a.status === 'partially_signed';
-                      if (status === 'signed') return a.signatures?.some(s => s.user_id === user?.id);
-                      if (status === 'completed') return a.status === 'completed';
-                      if (status === 'drafts') return a.status === 'draft';
-                      return true;
-                    })
-                    .map((agreement) => (
-                      <Card key={agreement.id} className="hover:shadow-md transition-shadow">
-                        <CardContent className="p-6">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                <h3 className="font-semibold text-lg">{agreement.title}</h3>
-                                {getStatusBadge(agreement.status)}
+                          {agreement.parties && agreement.parties.length > 0 && (
+                            <div className="mb-4">
+                              <p className="text-sm text-muted-foreground mb-2">Parties:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {agreement.parties.map((party) => (
+                                  <Badge 
+                                    key={party.id} 
+                                    variant={party.status === 'signed' ? 'default' : 'secondary'}
+                                    className="flex items-center gap-1"
+                                  >
+                                    {party.profile?.email || 'Unknown'}
+                                    {party.status === 'signed' && <CheckCircle className="h-3 w-3" />}
+                                  </Badge>
+                                ))}
                               </div>
-                              <p className="text-sm text-muted-foreground capitalize">{agreement.type}</p>
                             </div>
-                            
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleViewAgreement(agreement.id)}
-                              >
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                              
-                              {canUserSign(agreement) && (
-                                <Button
-                                  variant="default"
-                                  size="sm"
-                                  onClick={() => handleSignAgreement(agreement.id)}
-                                  className="bg-green-600 hover:bg-green-700"
-                                >
-                                  Sign
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                </TabsContent>
-              ))}
-            </Tabs>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="btn-hover" 
+                            onClick={() => {
+                              setSelectedAgreement(agreement.id);
+                              setCurrentView('view');
+                            }}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="btn-hover" 
+                            onClick={() => handleDownload(agreement.id)}
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          {agreement.status === 'draft' && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="btn-hover text-primary" 
+                              onClick={() => {
+                                setInviteAgreementId(agreement.id);
+                                setShowInviteDialog(true);
+                              }}
+                            >
+                              <Share2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {agreement.status !== 'draft' && !agreement.signatures?.find(s => s.user_id === user?.id) && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="btn-hover text-green-600" 
+                              onClick={() => {
+                                setSignAgreementId(agreement.id);
+                                setShowSignDialog(true);
+                              }}
+                            >
+                              <PenTool className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {agreement.status === 'draft' && agreement.creator_id === user?.id && (
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="btn-hover text-destructive hover:bg-destructive/10" 
+                              onClick={() => handleDelete(agreement.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Invite Party Dialog */}
+      {/* Dialogs */}
       <InvitePartyDialog
-        open={inviteDialogOpen}
-        onOpenChange={setInviteDialogOpen}
-        agreementId={selectedAgreementForAction}
+        open={showInviteDialog}
+        onOpenChange={(open) => {
+          setShowInviteDialog(open);
+          if (!open) setInviteAgreementId(null);
+        }}
+        agreementId={inviteAgreementId}
       />
 
-      {/* Sign Agreement Dialog */}
       <SignAgreementDialog
-        open={signDialogOpen}
-        onOpenChange={setSignDialogOpen}
-        agreementId={selectedAgreementForAction}
+        open={showSignDialog}
+        onOpenChange={(open) => {
+          setShowSignDialog(open);
+          if (!open) setSignAgreementId(null);
+        }}
+        agreementId={signAgreementId}
       />
     </div>
   );

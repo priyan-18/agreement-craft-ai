@@ -1,6 +1,6 @@
 // PDF Generation Service
 
-import { Agreement } from "@/hooks/useAgreements";
+import { Agreement } from "@/hooks/useSupabaseAgreements";
 
 export interface PDFGenerationOptions {
   title: string;
